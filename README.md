@@ -10,25 +10,27 @@ This project does **not** determine legal violations by itself. It produces geos
 - Start date.
 - End date.
 - Time interval: 3 or 6 months.
+- Base period length (default 12 months from the start date), used to map baseline water.
+
+The analysis only covers **baseline water**: pixels that NDWI classifies as water in the base period (e.g. 2021 for a 2021-2025 run). Land in the base period is ignored.
 
 ## Initial Outputs
 
 1. Cloud-masked Sentinel-2 time series between the start and end dates.
-2. NDVI, NDWI, and NDBI change maps between start and end dates.
-3. Land/water area change using NDWI.
+2. NDVI, NDWI, and NDBI change maps over baseline water, base period vs. end.
+3. Baseline water lost (water to land) per window and by the end.
 4. Existing coral reef map using Allen Coral Atlas data when available.
 5. Candidate business/entity search notes for the area.
 
 ## Recommended First Workflow
 
 1. Define the area of interest.
-2. Build cloud-masked Sentinel-2 composites for each interval.
-3. Calculate indices for every composite.
-4. Compare start and end composites.
-5. Flag potential concern zones:
+2. Build a cloud-masked base-period composite and map baseline water with NDWI.
+3. Build cloud-masked Sentinel-2 composites for each interval and calculate indices.
+4. Compare each composite against the baseline water.
+5. Flag potential concern zones inside baseline water:
    - water converted to land,
-   - vegetation loss,
-   - built-up expansion,
+   - built-up structures on former water,
    - development near mapped coral reef,
    - development inside protected or restricted zones if planning layers are available.
 6. Export maps and summary tables.
@@ -62,9 +64,9 @@ Without `EE_PROJECT` only the offline tests run. Live tests need `earthengine au
 
 ## Status
 
-Implemented in the notebook: cloud-masked time series, per-window index and water-area summary, NDVI/NDWI/NDBI change maps, land/water change, Allen Coral Atlas (`ACA/reef_habitat/v2_0`) reef habitat, and rule-based concern zones (water to land, vegetation loss, built-up gain, near reef).
+Implemented in the notebook: baseline water mask, cloud-masked time series with per-window baseline water loss, NDVI/NDWI/NDBI change maps over baseline water, Allen Coral Atlas (`ACA/reef_habitat/v2_0`) reef habitat, and rule-based concern zones inside baseline water (water to land, built-up gain, near reef).
 
-`gee_starter.js` covers only the change maps and land/water change.
+`gee_starter.js` covers only the baseline water mask, change maps, and water lost by the end.
 
 ## Next Improvements
 

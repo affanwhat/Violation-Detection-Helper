@@ -1,8 +1,11 @@
 // Earth Engine Code Editor starter for marine spatial planning signals.
+// The analysis is limited to baseline water: pixels that are water by NDWI in the
+// base period (START_DATE + BASELINE_MONTHS). Land in the base period is ignored.
 
-var START_DATE = '2022-01-01';
-var END_DATE = '2024-01-01';
+var START_DATE = '2021-01-01';
+var END_DATE = '2025-01-01';
 var INTERVAL_MONTHS = 6;
+var BASELINE_MONTHS = 12;
 var CLOUD_PROBABILITY_THRESHOLD = 40;
 var NDWI_THRESHOLD = 0.0;
 
@@ -69,8 +72,8 @@ function advanceDate(date, months) {
   return ee.Date(date).advance(months, 'month');
 }
 
-var startComposite = addIndices(
-  sentinel2Collection(START_DATE, advanceDate(START_DATE, INTERVAL_MONTHS))
+var baselineComposite = addIndices(
+  sentinel2Collection(START_DATE, advanceDate(START_DATE, BASELINE_MONTHS))
     .median()
     .clip(aoi)
 );
@@ -81,27 +84,33 @@ var endComposite = addIndices(
     .clip(aoi)
 );
 
+// Cloud gaps in the base period count as not water, so they are left out.
+var baselineWater = baselineComposite.select('NDWI').gt(NDWI_THRESHOLD)
+  .unmask(0)
+  .rename('baseline_water');
+
 var ndviChange = endComposite.select('NDVI')
-  .subtract(startComposite.select('NDVI'))
+  .subtract(baselineComposite.select('NDVI'))
+  .updateMask(baselineWater)
   .rename('NDVI_change');
 
 var ndwiChange = endComposite.select('NDWI')
-  .subtract(startComposite.select('NDWI'))
+  .subtract(baselineComposite.select('NDWI'))
+  .updateMask(baselineWater)
   .rename('NDWI_change');
 
 var ndbiChange = endComposite.select('NDBI')
-  .subtract(startComposite.select('NDBI'))
+  .subtract(baselineComposite.select('NDBI'))
+  .updateMask(baselineWater)
   .rename('NDBI_change');
 
-var startWater = startComposite.select('NDWI').gt(NDWI_THRESHOLD);
 var endWater = endComposite.select('NDWI').gt(NDWI_THRESHOLD);
-var waterToLand = startWater.and(endWater.not()).rename('water_to_land');
-var landToWater = startWater.not().and(endWater).rename('land_to_water');
+var waterToLand = endWater.not().updateMask(baselineWater).rename('water_to_land');
 
 var pixelAreaHa = ee.Image.pixelArea().divide(10000);
 var changeAreaHa = ee.Image.cat([
-  waterToLand.multiply(pixelAreaHa).rename('water_to_land_ha'),
-  landToWater.multiply(pixelAreaHa).rename('land_to_water_ha')
+  baselineWater.multiply(pixelAreaHa).rename('baseline_water_ha'),
+  waterToLand.multiply(pixelAreaHa).rename('water_to_land_ha')
 ]).reduceRegion({
   reducer: ee.Reducer.sum(),
   geometry: aoi,
@@ -109,17 +118,22 @@ var changeAreaHa = ee.Image.cat([
   maxPixels: 1e13
 });
 
-print('Land/water change area, ha', changeAreaHa);
+print('Baseline water and water lost by the end, ha', changeAreaHa);
 
 Map.addLayer(
-  startComposite,
+  baselineComposite,
   {bands: ['B4', 'B3', 'B2'], min: 0, max: 0.3},
-  'Start true color'
+  'Baseline true color'
 );
 Map.addLayer(
   endComposite,
   {bands: ['B4', 'B3', 'B2'], min: 0, max: 0.3},
   'End true color'
+);
+Map.addLayer(
+  baselineWater.selfMask(),
+  {palette: ['blue'], opacity: 0.4},
+  'Baseline water'
 );
 Map.addLayer(
   ndviChange,
@@ -140,11 +154,6 @@ Map.addLayer(
   waterToLand.selfMask(),
   {palette: ['red']},
   'Water to land'
-);
-Map.addLayer(
-  landToWater.selfMask(),
-  {palette: ['cyan']},
-  'Land to water'
 );
 
 // Allen Coral Atlas and business/entity lookup are intentionally placeholders.

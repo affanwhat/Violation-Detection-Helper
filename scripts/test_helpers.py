@@ -85,14 +85,13 @@ def test_class_area_table_empty(nb):
     assert list(table.columns) == ["class", "name", "area_ha"]
 
 
-def _zone(zone_ha, water=0.0, veg=0.0, built=0.0, reef=0.0):
+def _zone(zone_ha, water=0.0, built=0.0, reef=0.0):
     return {
         "type": "Feature",
         "geometry": None,
         "properties": {
             "zone_ha": zone_ha,
             "water_to_land_ha": water,
-            "vegetation_loss_ha": veg,
             "builtup_gain_ha": built,
             "near_reef_ha": reef,
             "lon": 106.8,
@@ -101,16 +100,21 @@ def _zone(zone_ha, water=0.0, veg=0.0, built=0.0, reef=0.0):
     }
 
 
+def test_flag_bands_are_water_only(nb):
+    assert nb.FLAG_BANDS == ["water_to_land", "builtup_gain"]
+
+
 def test_zone_table_ranks_by_signal_count_then_area(nb):
-    info = {"features": [_zone(20.0, water=20.0), _zone(3.0, water=1.0, built=2.0), _zone(5.0, veg=5.0)]}
+    info = {"features": [_zone(20.0, water=20.0), _zone(3.0, water=3.0, built=2.0), _zone(5.0, water=5.0)]}
     table = nb.zone_table(info)
-    assert table["signals"].tolist() == ["water_to_land, builtup_gain", "water_to_land", "vegetation_loss"]
+    assert table["signals"].tolist() == ["water_to_land, builtup_gain", "water_to_land", "water_to_land"]
     assert table["signal_count"].tolist() == [2, 1, 1]
+    assert table["zone_ha"].tolist() == [3.0, 20.0, 5.0]
     assert "near_reef_ha" in table.columns
 
 
 def test_zone_table_min_signal_ignores_slivers(nb):
-    info = {"features": [_zone(5.0, water=4.95, built=0.05)]}
+    info = {"features": [_zone(5.0, water=5.0, built=0.05)]}
     assert nb.zone_table(info, min_signal_ha=0.1)["signals"].tolist() == ["water_to_land"]
 
 
