@@ -1,5 +1,7 @@
 earthengine-api
 geemap
 geopandas
+matplotlib
 pandas
+python-dotenv
 shapely

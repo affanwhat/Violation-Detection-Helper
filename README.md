@@ -46,11 +46,30 @@ This project does **not** determine legal violations by itself. It produces geos
 - `marine_spatial_planning_geemap.ipynb`: Colab/Jupyter notebook workflow using `geemap`.
 - `gee_starter.js`: Earth Engine Code Editor starter script.
 - `requirements.txt`: Python packages for Colab/local use.
+- `scripts/`: tests for the notebook's helper functions.
+
+## Testing
+
+The notebook stays self-contained for Colab. Code cells whose first line is `# lib-cell: ...` contain only imports, constants and function definitions; `scripts/notebook_loader.py` executes exactly those cells so the tests can call the same functions the notebook uses.
+
+```bash
+pip install -r requirements-dev.txt
+cp .env.example .env   # then set EE_PROJECT
+pytest scripts
+```
+
+Without `EE_PROJECT` only the offline tests run. Live tests need `earthengine authenticate` and a Google Cloud project registered for Earth Engine. The notebook reads the same `.env` when run locally; in Colab, set `EE_PROJECT` in the initialization cell.
+
+## Status
+
+Implemented in the notebook: cloud-masked time series, per-window index and water-area summary, NDVI/NDWI/NDBI change maps, land/water change, Allen Coral Atlas (`ACA/reef_habitat/v2_0`) reef habitat, and rule-based concern zones (water to land, vegetation loss, built-up gain, near reef).
+
+`gee_starter.js` covers only the change maps and land/water change.
 
 ## Next Improvements
 
-- Add official zoning/planning layers for the target country.
-- Add automated exports to Google Drive.
-- Add per-year change summaries.
-- Add confidence scoring for each red-flag zone.
-- Add report generation with maps, charts, and tables.
+- Confidence scoring for each concern zone.
+- Candidate business/entity lookup via OpenStreetMap/Overpass.
+- Protected areas (WDPA) and country zoning layers, starting with Indonesia's RZWP3K.
+- Automated exports to Google Drive.
+- HTML and PDF report generation with maps, charts, and tables.
