@@ -60,6 +60,8 @@ cp .env.example .env   # then set EE_PROJECT
 pytest scripts
 ```
 
+`scripts/test_notebook_e2e.py` also runs the whole notebook headlessly with `nbclient` (install cell dropped, a small Jakarta-coast AOI and 30 m scale injected after the parameters cell) and checks the main outputs; it takes a couple of minutes.
+
 Without `EE_PROJECT` only the offline tests run. Live tests need `earthengine authenticate` and a Google Cloud project registered for Earth Engine. The notebook reads the same `.env` when run locally; in Colab, set `EE_PROJECT` in the initialization cell.
 
 ## Status
